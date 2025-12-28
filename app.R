@@ -134,12 +134,22 @@ ui <- fluidPage(
                 selected = "SA2"
             ),
             uiOutput("geo_selector"),
-            selectInput(
-                "age_groups",
-                "Age groups",
-                choices = c("Total", age_levels),
-                selected = "Total",
-                multiple = TRUE
+            radioButtons(
+                "age_category",
+                "Age category",
+                choices = c("All ages" = "all", "Under 65" = "under65", "65 and over" = "65plus", "Custom" = "custom"),
+                selected = "all",
+                inline = TRUE
+            ),
+            conditionalPanel(
+                condition = "input.age_category == 'custom'",
+                selectInput(
+                    "age_groups",
+                    "Select age groups",
+                    choices = c("Total", age_levels),
+                    selected = "Total",
+                    multiple = TRUE
+                )
             ),
             checkboxInput(
                 "show_percent",
@@ -284,6 +294,25 @@ server <- function(input, output, session) {
         )
     })
 
+    # Helper to get selected age groups based on age_category
+    get_selected_ages <- reactive({
+        age_cat <- input$age_category
+        if (is.null(age_cat) || age_cat == "all") {
+            return("Total")
+        } else if (age_cat == "under65") {
+            return(c("0-14 years", "15-24 years", "25-34 years", "35-44 years", "45-54 years", "55-64 years"))
+        } else if (age_cat == "65plus") {
+            return(c("65-74 years", "75-84 years", "85 plus"))
+        } else {
+            # Custom selection
+            selected <- input$age_groups
+            if (is.null(selected) || "Total" %in% selected) {
+                return("Total")
+            }
+            return(selected)
+        }
+    })
+
     # Filter data based on selections
     filtered_data <- reactive({
         req(input$geos, input$comparison_sex)
@@ -291,10 +320,7 @@ server <- function(input, output, session) {
         level_name <- geo_col(input$geo_level, "name")
 
         # Handle age group selection
-        selected_ages <- input$age_groups
-        if (is.null(selected_ages) || "Total" %in% selected_ages) {
-            selected_ages <- "Total"
-        }
+        selected_ages <- get_selected_ages()
 
         data <- health_data |>
             filter(geog_type == input$geo_level) |>
@@ -315,10 +341,7 @@ server <- function(input, output, session) {
 
         level_name <- geo_col(input$geo_level, "name")
 
-        selected_ages <- input$age_groups
-        if (is.null(selected_ages) || "Total" %in% selected_ages) {
-            selected_ages <- "Total"
-        }
+        selected_ages <- get_selected_ages()
 
         data <- health_data |>
             filter(geog_type == input$geo_level) |>
@@ -366,6 +389,14 @@ server <- function(input, output, session) {
         y_var <- if (isTRUE(input$show_percent)) "pct" else "persons"
         y_label <- if (isTRUE(input$show_percent)) "Percentage (%)" else "Number of Persons"
 
+        # Get age label for subtitle
+        age_label <- switch(input$age_category,
+            "all" = "All ages",
+            "under65" = "Under 65",
+            "65plus" = "65 and over",
+            "custom" = paste(input$age_groups, collapse = ", ")
+        )
+
         palette_vals <- palette_for(plot_data$geo_name)
 
         ggplot(plot_data, aes(x = condition_short, y = .data[[y_var]], fill = geo_name)) +
@@ -387,7 +418,7 @@ server <- function(input, output, session) {
                 y = y_label,
                 fill = geo_lookup[[input$geo_level]]$label,
                 title = "Long-Term Health Conditions by Area",
-                subtitle = paste(input$comparison_sex, "| Age:", paste(input$age_groups, collapse = ", "))
+                subtitle = paste(input$comparison_sex, "| Age:", age_label)
             ) +
             theme_minimal(base_size = 13) +
             theme(
