@@ -90,23 +90,40 @@ sa4_choices <- health_data$sa4_name |>
 # ------------------------------------------------------------------------------
 ui <- fluidPage(
     tags$head(
+        tags$link(
+            href = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css",
+            rel = "stylesheet",
+            integrity = "sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH",
+            crossorigin = "anonymous"
+        ),
         tags$style(HTML("
-      .bar-chart-container { margin-bottom: 20px; }
-      .comparison-header { font-weight: bold; margin-bottom: 10px; }
+      body {
+        font-size: 14px;
+      }
+      .app-navbar {
+        background: radial-gradient(1200px circle at 10% 10%, rgba(13,110,253,.18), transparent 40%),
+                    radial-gradient(900px circle at 90% 20%, rgba(25,135,84,.14), transparent 40%),
+                    linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+        padding: 20px 20px 16px 20px;
+        margin: -10px -15px 20px -15px;
+      }
+      .app-navbar .btn {
+        font-size: 1rem;
+        padding: 8px 16px;
+      }
     "))
     ),
     tags$div(
-        style = "margin: 12px 0;",
+        class = "app-navbar d-flex gap-2",
         tags$a(
             href = "/",
-            target = "_self",
-            class = "btn btn-default btn-sm",
+            class = "btn btn-outline-light",
             "\u2190 Home"
         ),
         tags$a(
             href = "https://github.com/johnmarquess/ABS_APP",
             target = "_blank",
-            class = "btn btn-default btn-sm",
+            class = "btn btn-outline-light",
             style = "margin-left: 8px;",
             "GitHub"
         )
@@ -119,7 +136,7 @@ ui <- fluidPage(
                 "phn_filter",
                 "Limit to PHN (optional)",
                 choices = c("All PHNs", phn_choices),
-                selected = "All PHNs"
+                selected = "Brisbane North"
             ),
             selectInput(
                 "sa4_filter",
@@ -131,18 +148,21 @@ ui <- fluidPage(
                 "geo_level",
                 "Geography level",
                 choices = names(geo_lookup),
-                selected = "SA2"
+                selected = "SA3"
             ),
             uiOutput("geo_selector"),
-            radioButtons(
-                "age_category",
-                "Age category",
-                choices = c("All ages" = "all", "Under 65" = "under65", "65 and over" = "65plus", "Custom" = "custom"),
-                selected = "all",
-                inline = TRUE
+            conditionalPanel(
+                condition = "input.tabset == 'comparison'",
+                radioButtons(
+                    "age_category",
+                    "Age category",
+                    choices = c("All ages" = "all", "Under 65" = "under65", "65 and over" = "65plus", "Custom" = "custom"),
+                    selected = "all",
+                    inline = TRUE
+                )
             ),
             conditionalPanel(
-                condition = "input.age_category == 'custom'",
+                condition = "input.tabset == 'comparison' && input.age_category == 'custom'",
                 selectInput(
                     "age_groups",
                     "Select age groups",
@@ -153,7 +173,7 @@ ui <- fluidPage(
             ),
             checkboxInput(
                 "show_percent",
-                "Show as percentage of population",
+                "Show as percentage of selected population",
                 value = TRUE
             ),
             checkboxInput(
