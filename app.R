@@ -304,7 +304,13 @@ server <- function(input, output, session) {
 
     output$geo_selector <- renderUI({
         choices <- available_geos()
-        initial_sel <- head(choices, n = min(3, length(choices)))
+        # Default to specific SA3s if available, otherwise first 3
+        default_sa3s <- c("Brisbane Inner", "Brisbane Inner - North", "Brisbane Inner - West")
+        initial_sel <- if (input$geo_level == "SA3" && all(default_sa3s %in% choices)) {
+            default_sa3s
+        } else {
+            head(choices, n = min(3, length(choices)))
+        }
         selectInput(
             "geos",
             paste0("Select ", geo_lookup[[input$geo_level]]$label, "(s) to compare"),
